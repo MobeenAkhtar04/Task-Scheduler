@@ -1,0 +1,10 @@
+# macOS
+.DS_Store
+
+# C++ build artifacts
+runtime/worker
+
+# Python
+__pycache__/
+*.pyc
+*.pyo

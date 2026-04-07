@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scheduler Dashboard</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #080810;
+  color: #aaa;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* HEADER */
+header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 18px;
+  border-bottom: 1px solid #15151f;
+  background: #0a0a14;
+  flex-shrink: 0;
+}
+header h1 { color: #00ff88; font-size: 14px; letter-spacing: 3px; }
+
+.conn-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: #333; flex-shrink: 0;
+  transition: all 0.3s;
+}
+.conn-dot.on  { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+.conn-dot.off { background: #ff4444; box-shadow: 0 0 6px #ff4444; }
+
+#conn-text { color: #333; font-size: 11px; }
+#conn-text.on  { color: #00ff88; }
+#conn-text.off { color: #ff4444; }
+
+.rate-badge {
+  margin-left: auto;
+  background: #0f0f1a;
+  border: 1px solid #1a1a2f;
+  padding: 2px 10px;
+  color: #ffaa00;
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+/* STATS BAR */
+.stats {
+  display: flex;
+  border-bottom: 1px solid #15151f;
+  flex-shrink: 0;
+}
+.stat {
+  flex: 1;
+  padding: 8px 18px;
+  border-right: 1px solid #15151f;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.stat:last-child { border-right: none; }
+.stat-label { color: #333; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; }
+.stat-val { font-size: 26px; font-weight: bold; line-height: 1; }
+.g { color: #00ff88; } .r { color: #ff4444; }
+.y { color: #ffaa00; } .w { color: #ccc; }
+
+/* MAIN AREA */
+.main {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* QUEUE PANEL */
+.queue-panel {
+  width: 110px;
+  border-right: 1px solid #15151f;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 14px 10px;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.panel-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #333;
+}
+.queue-num {
+  font-size: 44px;
+  font-weight: bold;
+  color: #5588ff;
+  line-height: 1;
+}
+.queue-dots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  justify-content: center;
+}
+.qdot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #5588ff;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%,100% { opacity: 0.2; transform: scale(0.8); }
+  50%      { opacity: 1;   transform: scale(1.1); }
+}
+
+/* WORKERS */
+.workers-panel {
+  flex: 1;
+  display: flex;
+  gap: 1px;
+  background: #111118;
+  overflow: hidden;
+}
+
+.worker-col {
+  flex: 1;
+  background: #080810;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.4s;
+  min-width: 0;
+}
+.worker-col.active { background: #090d14; }
+
+.worker-head {
+  padding: 10px 10px 8px;
+  border-bottom: 1px solid #111;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.worker-name-label {
+  color: #00aaff;
+  font-size: 11px;
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.worker-light {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #1a1a28;
+  margin-left: auto;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+.worker-light.on { background: #00ff88; box-shadow: 0 0 8px #00ff88; }
+
+.worker-mini-stats {
+  padding: 4px 10px;
+  font-size: 10px;
+  color: #2a2a3a;
+  border-bottom: 1px solid #0d0d15;
+  display: flex;
+  gap: 8px;
+}
+.worker-mini-stats .wc { color: #00ff88; }
+.worker-mini-stats .wf { color: #ff4444; }
+
+.job-slots {
+  flex: 1;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+}
+
+/* JOB PILLS */
+.job-pill {
+  padding: 4px 7px;
+  font-size: 10px;
+  border-left: 2px solid;
+  border-radius: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  animation: pill-in 0.2s ease;
+  transition: background 0.3s, border-color 0.3s, color 0.3s, opacity 0.4s, transform 0.4s;
+}
+@keyframes pill-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.job-pill.active {
+  background: #0a1020;
+  border-color: #5588ff;
+  color: #7799cc;
+}
+.job-pill.done {
+  background: #081a0e;
+  border-color: #00ff88;
+  color: #00ff88;
+}
+.job-pill.fail {
+  background: #1a0808;
+  border-color: #ff4444;
+  color: #ff4444;
+}
+
+/* SIDE PANEL */
+.side-panel {
+  width: 110px;
+  border-left: 1px solid #15151f;
+  padding: 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  flex-shrink: 0;
+}
+.side-block { text-align: center; }
+.side-num { font-size: 36px; font-weight: bold; line-height: 1; }
+.side-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #333; margin-top: 2px; }
+
+.sparkline-wrap { margin-top: auto; }
+.spark-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #222; margin-bottom: 5px; }
+
+/* LOG */
+.log-panel {
+  flex-shrink: 0;
+  height: 120px;
+  border-top: 1px solid #15151f;
+  background: #050508;
+  overflow: hidden;
+}
+.log-inner {
+  height: 100%;
+  overflow-y: auto;
+  padding: 4px 12px;
+  display: flex;
+  flex-direction: column-reverse;
+}
+.log-row {
+  display: flex;
+  gap: 8px;
+  padding: 2px 0;
+  border-bottom: 1px solid #0a0a10;
+  font-size: 10px;
+  align-items: baseline;
+  flex-shrink: 0;
+}
+.lts { color: #222; min-width: 62px; }
+.badge {
+  font-size: 8px;
+  padding: 1px 4px;
+  min-width: 66px;
+  text-align: center;
+  letter-spacing: 0.5px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.badge.enqueued   { color: #4488ff; border: 1px solid #1a1a30; }
+.badge.dispatched { color: #8888ff; border: 1px solid #1a1a30; }
+.badge.completed  { color: #00ff88; border: 1px solid #0a2a18; }
+.badge.failed     { color: #ff4444; border: 1px solid #2a0a0a; }
+.badge.retry      { color: #ffaa00; border: 1px solid #2a1a00; }
+.badge.dropped    { color: #664444; border: 1px solid #1a0a0a; }
+.lmsg { color: #444; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lmsg .j { color: #777; }
+.lmsg .w { color: #3388cc; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>// SCHEDULER</h1>
+  <div class="conn-dot" id="conn-dot"></div>
+  <span id="conn-text">disconnected</span>
+  <div class="rate-badge" id="rate-badge">— events/min</div>
+</header>
+
+<div class="stats">
+  <div class="stat">
+    <div><div class="stat-label">Completed</div><div class="stat-val g" id="s-comp">0</div></div>
+  </div>
+  <div class="stat">
+    <div><div class="stat-label">Failed</div><div class="stat-val r" id="s-fail">0</div></div>
+  </div>
+  <div class="stat">
+    <div><div class="stat-label">Dropped</div><div class="stat-val y" id="s-drop">0</div></div>
+  </div>
+  <div class="stat">
+    <div><div class="stat-label">Total Events</div><div class="stat-val w" id="s-total">0</div></div>
+  </div>
+</div>
+
+<div class="main">
+  <div class="queue-panel">
+    <div class="panel-title">Queue</div>
+    <div class="queue-num" id="q-num">0</div>
+    <div class="queue-dots" id="q-dots"></div>
+  </div>
+
+  <div class="workers-panel" id="workers-panel"></div>
+
+  <div class="side-panel">
+    <div class="side-block">
+      <div class="side-num g" id="d-done">0</div>
+      <div class="side-label">done</div>
+    </div>
+    <div class="side-block">
+      <div class="side-num r" id="d-fail">0</div>
+      <div class="side-label">fail</div>
+    </div>
+    <div class="sparkline-wrap">
+      <div class="spark-label">Rate</div>
+      <svg id="spark" width="90" height="44" style="display:block;overflow:visible"></svg>
+    </div>
+  </div>
+</div>
+
+<div class="log-panel">
+  <div class="log-inner" id="log"></div>
+</div>
+
+<script>
+const counts = { completed: 0, failed: 0, dropped: 0, total: 0 };
+const workerStats  = {};  // name -> {completed, failed}
+const activeJobs   = {};  // job_id -> {worker, el}
+const knownWorkers = new Set();
+const eventTimes   = [];  // timestamps for rate
+const sparkBuckets = new Array(24).fill(0);
+let sparkTick = 0;
+let queueDepth = 0;
+
+function ts() { return new Date().toTimeString().slice(0, 8); }
+
+// --- Stats ---
+function refreshStats() {
+  document.getElementById('s-comp').textContent  = counts.completed;
+  document.getElementById('s-fail').textContent  = counts.failed;
+  document.getElementById('s-drop').textContent  = counts.dropped;
+  document.getElementById('s-total').textContent = counts.total;
+  document.getElementById('d-done').textContent  = counts.completed;
+  document.getElementById('d-fail').textContent  = counts.failed;
+}
+
+// --- Queue ---
+function refreshQueue() {
+  document.getElementById('q-num').textContent = queueDepth;
+  const dots = document.getElementById('q-dots');
+  const n = Math.min(queueDepth, 16);
+  dots.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'qdot';
+    d.style.animationDelay = (i * 0.12) + 's';
+    dots.appendChild(d);
+  }
+}
+
+// --- Workers ---
+function ensureWorker(name) {
+  if (!name || knownWorkers.has(name)) return;
+  knownWorkers.add(name);
+  workerStats[name] = { completed: 0, failed: 0 };
+
+  const panel = document.getElementById('workers-panel');
+  const col = document.createElement('div');
+  col.className = 'worker-col';
+  col.id = 'wcol-' + name;
+  col.innerHTML = `
+    <div class="worker-head">
+      <span class="worker-name-label">${name}</span>
+      <div class="worker-light" id="wl-${name}"></div>
+    </div>
+    <div class="worker-mini-stats">
+      <span class="wc" id="wc-${name}">0</span> done
+      <span class="wf" id="wf-${name}">0</span> fail
+    </div>
+    <div class="job-slots" id="ws-${name}"></div>
+  `;
+  panel.appendChild(col);
+}
+
+function setWorkerActive(name, on) {
+  document.getElementById('wcol-' + name)?.classList.toggle('active', on);
+  document.getElementById('wl-' + name)?.classList.toggle('on', on);
+}
+
+function refreshWorkerCount(name) {
+  const s = workerStats[name];
+  const wc = document.getElementById('wc-' + name);
+  const wf = document.getElementById('wf-' + name);
+  if (wc) wc.textContent = s.completed;
+  if (wf) wf.textContent = s.failed;
+}
+
+// Check if a worker still has any active (non-resolved) pills
+function workerHasActive(name) {
+  return Object.values(activeJobs).some(j => j.worker === name);
+}
+
+// --- Job pills ---
+function addPill(jobId, worker) {
+  const slots = document.getElementById('ws-' + worker);
+  if (!slots) return;
+  const pill = document.createElement('div');
+  pill.className = 'job-pill active';
+  pill.id = 'pill-' + jobId;
+  pill.textContent = jobId;
+  slots.prepend(pill);
+  activeJobs[jobId] = { worker, el: pill };
+  setWorkerActive(worker, true);
+}
+
+const MIN_SHOW = 700; // ms minimum pill visibility
+
+function resolvePill(jobId, cls) {
+  const job = activeJobs[jobId];
+  if (!job) return;
+  const pill = job.el;
+  const worker = job.worker;
+  pill.className = 'job-pill ' + cls;
+
+  setTimeout(() => {
+    pill.style.opacity = '0';
+    pill.style.transform = 'translateY(-8px)';
+    setTimeout(() => {
+      pill.remove();
+      delete activeJobs[jobId];
+      if (!workerHasActive(worker)) setWorkerActive(worker, false);
+    }, 400);
+  }, MIN_SHOW);
+}
+
+// --- Sparkline ---
+function drawSparkline() {
+  const svg = document.getElementById('spark');
+  const W = 90, H = 44;
+  const n = sparkBuckets.length;
+  const max = Math.max(...sparkBuckets, 1);
+  const bw = W / n;
+  svg.innerHTML = sparkBuckets.map((v, i) => {
+    const bh = Math.max((v / max) * H, v > 0 ? 2 : 0);
+    const x = i * bw;
+    const y = H - bh;
+    const alpha = 0.2 + (i / n) * 0.8;
+    return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(bw - 1).toFixed(1)}" height="${bh.toFixed(1)}" fill="#00ff88" opacity="${alpha.toFixed(2)}"/>`;
+  }).join('');
+}
+
+setInterval(() => {
+  sparkTick++;
+  const now = Date.now();
+  const recent = eventTimes.filter(t => now - t < 1000).length;
+  sparkBuckets.push(recent);
+  sparkBuckets.shift();
+  drawSparkline();
+
+  // rate badge (events in last 60s)
+  while (eventTimes.length && now - eventTimes[0] > 60000) eventTimes.shift();
+  document.getElementById('rate-badge').textContent = eventTimes.length + ' events/min';
+}, 1000);
+
+// --- Log ---
+function addLog(event, data) {
+  const log = document.getElementById('log');
+  const row = document.createElement('div');
+  row.className = 'log-row';
+  const j = s => `<span class="j">${s}</span>`;
+  const w = s => `<span class="w">${s}</span>`;
+  let msg = '';
+  if (event === 'enqueued')   msg = `${j(data.job_id)} queued`;
+  if (event === 'dispatched') msg = `${j(data.job_id)} → ${w(data.worker)}`;
+  if (event === 'completed')  msg = `${j(data.job_id)} done on ${w(data.worker)}`;
+  if (event === 'failed')     msg = `${j(data.job_id)} failed on ${w(data.worker)}`;
+  if (event === 'retry')      msg = `${j(data.job_id)} retry #${data.attempt} in ${data.delay}s`;
+  if (event === 'dropped')    msg = `${j(data.job_id)} dropped`;
+  row.innerHTML = `<span class="lts">${ts()}</span><span class="badge ${event}">${event.toUpperCase()}</span><span class="lmsg">${msg}</span>`;
+  log.prepend(row);
+  while (log.children.length > 200) log.removeChild(log.lastChild);
+}
+
+// --- Main event handler ---
+function handleEvent(data) {
+  counts.total++;
+  eventTimes.push(Date.now());
+  const e = data.event;
+
+  if (e === 'enqueued') {
+    queueDepth++;
+    refreshQueue();
+  }
+  if (e === 'dispatched') {
+    queueDepth = Math.max(0, queueDepth - 1);
+    refreshQueue();
+    ensureWorker(data.worker);
+    addPill(data.job_id, data.worker);
+  }
+  if (e === 'completed') {
+    counts.completed++;
+    if (workerStats[data.worker]) workerStats[data.worker].completed++;
+    refreshWorkerCount(data.worker);
+    resolvePill(data.job_id, 'done');
+  }
+  if (e === 'failed') {
+    counts.failed++;
+    if (data.worker && workerStats[data.worker]) workerStats[data.worker].failed++;
+    if (data.worker) refreshWorkerCount(data.worker);
+    resolvePill(data.job_id, 'fail');
+  }
+  if (e === 'dropped') {
+    counts.dropped++;
+  }
+
+  refreshStats();
+  addLog(e, data);
+}
+
+// --- WebSocket ---
+function connect() {
+  const dot = document.getElementById('conn-dot');
+  const txt = document.getElementById('conn-text');
+  const ws  = new WebSocket('ws://localhost:8765');
+
+  ws.onopen = () => {
+    dot.className = 'conn-dot on';
+    txt.className = 'on';
+    txt.textContent = 'connected';
+  };
+  ws.onmessage = (msg) => {
+    try { handleEvent(JSON.parse(msg.data)); } catch(e) {}
+  };
+  ws.onclose = () => {
+    dot.className = 'conn-dot off';
+    txt.className = 'off';
+    txt.textContent = 'reconnecting...';
+    setTimeout(connect, 3000);
+  };
+  ws.onerror = () => {
+    dot.className = 'conn-dot off';
+    txt.className = 'off';
+    txt.textContent = 'error';
+  };
+}
+
+drawSparkline();
+connect();
+</script>
+</body>
+</html>

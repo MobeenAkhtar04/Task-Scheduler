@@ -1,0 +1,47 @@
+services:
+  worker1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: scheduler-worker1
+    ports:
+      - "9001:9000"
+
+  worker2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: scheduler-worker2
+    ports:
+      - "9002:9000"
+
+  worker3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: scheduler-worker3
+    ports:
+      - "9003:9000"
+
+  worker4:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.worker
+    container_name: scheduler-worker4
+    ports:
+      - "9004:9000"
+
+  coordinator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.coordinator
+    container_name: scheduler-coordinator
+    depends_on:
+      - worker1
+      - worker2
+      - worker3
+      - worker4
+    ports:
+      - "8765:8765"
+    environment:
+      - PYTHONUNBUFFERED=1
