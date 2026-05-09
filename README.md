@@ -71,4 +71,3 @@ Then open `dashboard/index.html` in your browser.
 | worker2     | 9002 | TCP jobs              |
 | worker3     | 9003 | TCP jobs              |
 | worker4     | 9004 | TCP jobs              |
-# Task-Scheduler
