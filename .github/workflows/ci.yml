@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-runtime:
+    name: Build C++ Runtime
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y g++ make
+
+      - name: Build
+        working-directory: runtime
+        run: make
+
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build worker image
+        run: docker build -f docker/Dockerfile.worker .
+
+      - name: Build coordinator image
+        run: docker build -f docker/Dockerfile.coordinator .
